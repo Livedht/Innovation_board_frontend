@@ -4,6 +4,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Box, VStack, Text, Button, useToast, HStack, Heading, Collapse } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import AddTask from './AddTask'; // Legg til denne linjen
 
 const TaskItem = ({ task, index, moveTask, handleEdit, handleDelete }) => {
   const [{ isDragging }, drag] = useDrag({
@@ -83,11 +84,7 @@ const TasksList = () => {
   const [editingTask, setEditingTask] = useState(null);
   const toast = useToast();
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = () => {
+  const fetchTasks = useCallback(() => {
     axios.get('http://localhost:5000/tasks')
       .then(response => {
         console.log('Fetched tasks:', response.data);
@@ -103,7 +100,11 @@ const TasksList = () => {
           isClosable: true,
         });
       });
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
 
   const moveTask = useCallback((dragIndex, hoverIndex) => {
     setTasks((prevTasks) => {
@@ -166,30 +167,6 @@ const TasksList = () => {
         });
       });
   };
-
-  const handleDragEnd = useCallback(() => {
-    const taskIds = tasks.map(task => task.id);
-    axios.post('http://localhost:5000/tasks/reorder', taskIds)
-      .then(response => {
-        setTasks(response.data);
-        toast({
-          title: "Rekkefølge oppdatert",
-          status: "success",
-          duration: 2000,
-          isClosable: true,
-        });
-      })
-      .catch(error => {
-        console.error('Error updating task order:', error);
-        toast({
-          title: "Feil ved oppdatering av rekkefølge",
-          description: error.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  }, [tasks, toast]);
 
   return (
     <DndProvider backend={HTML5Backend}>
