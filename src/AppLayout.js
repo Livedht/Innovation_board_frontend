@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Flex, VStack, Heading, Button, useToast } from "@chakra-ui/react";
+import { Box, Flex, VStack, Heading, Button, useToast, Spacer } from "@chakra-ui/react";
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 const AppLayout = ({ children, onAddNewTask }) => {
   const toast = useToast();
@@ -34,21 +35,58 @@ const AppLayout = ({ children, onAddNewTask }) => {
       });
   };
 
+  const handleAddNewMeeting = () => {
+    const newMeeting = {
+      number: '02/24',
+      date: new Date().toISOString().split('T')[0] // Just an example, should be user input
+    };
+    axios.post('http://localhost:5000/meetings', newMeeting)
+      .then(response => {
+        toast({
+          title: "Møte lagt til",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+      })
+      .catch(error => {
+        console.error('Error adding meeting:', error);
+        toast({
+          title: "Feil ved tillegg av møte",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  };
+
   return (
     <Box minH="100vh">
-      <Box bg="blue.600" color="white" p={4}>
+      <Flex bg="blue.600" color="white" p={4} alignItems="center">
         <Heading size="lg">Innovation Board Executive</Heading>
-      </Box>
+        <Spacer />
+        <Button as={Link} to="/saksdatabase" colorScheme="blue" variant="outline" mr={2}>
+          Saksdatabase
+        </Button>
+        <Button as={Link} to="/moter" colorScheme="blue" variant="outline" mr={2}>
+          Møter
+        </Button>
+        <Button colorScheme="blue" onClick={onAddNewTask} mr={2}>
+          Legg til ny idé
+        </Button>
+        <Button colorScheme="blue" onClick={handleGenerateReport} mr={2}>
+          Generer sakspapirer
+        </Button>
+        <Button colorScheme="blue" onClick={handleAddNewMeeting}>
+          Legg til nytt møte
+        </Button>
+      </Flex>
 
       <Flex>
         <Box w="200px" bg="gray.100" p={4}>
           <VStack spacing={4} align="stretch">
-            <Button colorScheme="blue" onClick={onAddNewTask}>
-              Legg til ny idé
-            </Button>
-            <Button colorScheme="blue" onClick={handleGenerateReport}>
-              Generer sakspapirer
-            </Button>
+            {/* Fjernet knappene fra sidebaren */}
           </VStack>
         </Box>
 
