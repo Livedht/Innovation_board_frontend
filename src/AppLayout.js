@@ -6,15 +6,15 @@ const AppLayout = ({ children, onAddNewTask }) => {
   const toast = useToast();
 
   const handleGenerateReport = () => {
-    axios.get('http://localhost:5000/tasks/generate_report')
+    axios.get('http://localhost:5000/tasks/generate_report', { responseType: 'blob' })
       .then(response => {
-        // Create a Blob from the response data
-        const blob = new Blob([response.data.report], { type: 'text/plain' });
-        // Create a link element and trigger the download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'innovation_board_sakspapirer.txt';
+        link.href = url;
+        link.setAttribute('download', 'innovation_board_sakspapirer.docx');
+        document.body.appendChild(link);
         link.click();
+        link.parentNode.removeChild(link);
         toast({
           title: "Rapport generert",
           status: "success",
@@ -46,7 +46,9 @@ const AppLayout = ({ children, onAddNewTask }) => {
             <Button colorScheme="blue" onClick={onAddNewTask}>
               Legg til ny idé
             </Button>
-            <Button onClick={handleGenerateReport}>Generer sakspapirer</Button>
+            <Button colorScheme="blue" onClick={handleGenerateReport}>
+              Generer sakspapirer
+            </Button>
           </VStack>
         </Box>
 

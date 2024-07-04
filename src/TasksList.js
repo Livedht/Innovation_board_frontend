@@ -2,82 +2,81 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import AddTask from './AddTask';
 import { Box, VStack, Text, Button, useToast, HStack, Heading, Collapse } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 
 const TaskItem = ({ task, index, moveTask, handleEdit, handleDelete }) => {
-    const [{ isDragging }, drag] = useDrag({
-      type: 'TASK',
-      item: { id: task.id, index },
-      collect: (monitor) => ({
-        isDragging: monitor.isDragging(),
-      }),
-    });
-  
-    const [, drop] = useDrop({
-      accept: 'TASK',
-      hover(item, monitor) {
-        if (!ref.current) {
-          return;
-        }
-        const dragIndex = item.index;
-        const hoverIndex = index;
-        if (dragIndex === hoverIndex) {
-          return;
-        }
-        moveTask(dragIndex, hoverIndex);
-        item.index = hoverIndex;
-      },
-    });
-  
-    const ref = React.useRef(null);
-    const dragDropRef = drag(drop(ref));
-    const [isOpen, setIsOpen] = useState(false);
-  
-    const toggleOpen = () => setIsOpen(!isOpen);
-  
-    return (
-      <Box
-        ref={dragDropRef}
-        p={4}
-        bg="white"
-        boxShadow="md"
-        borderRadius="md"
-        opacity={isDragging ? 0.5 : 1}
-      >
-        <HStack justifyContent="space-between">
-          <VStack align="start" spacing={1}>
-            <Text fontSize="sm" color="gray.500">{task.caseNumber}</Text>
-            <Heading size="md">{task.title}</Heading>
-            <Text>{task.owner}</Text>
-            <Text color="blue.500">{task.stage}</Text> {/* Display the stage */}
-          </VStack>
-          <Button onClick={toggleOpen}>
-            {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-          </Button>
-        </HStack>
-        <Collapse in={isOpen}>
-          <VStack align="start" mt={4} spacing={2}>
-            <Text><strong>Beskrivelse:</strong> {task.description}</Text>
-            <Text><strong>Relevans for BI:</strong> {task.relevanceForBI}</Text>
-            <Text><strong>Behov:</strong> {task.needForCourse}</Text>
-            <Text><strong>Målgruppe:</strong> {task.targetGroup}</Text>
-            <Text><strong>Vekstpotensial:</strong> {task.growthPotential}</Text>
-            <Text><strong>Faglige ressurser:</strong> {task.facultyResources}</Text>
-          </VStack>
-        </Collapse>
-        <HStack mt={4} justifyContent="flex-end">
-          <Button size="sm" leftIcon={<EditIcon />} onClick={() => handleEdit(task)}>
-            Rediger
-          </Button>
-          <Button size="sm" leftIcon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(task.id)}>
-            Slett
-          </Button>
-        </HStack>
-      </Box>
-    );
-  };
+  const [{ isDragging }, drag] = useDrag({
+    type: 'TASK',
+    item: { id: task.id, index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
+  const [, drop] = useDrop({
+    accept: 'TASK',
+    hover(item, monitor) {
+      if (!ref.current) {
+        return;
+      }
+      const dragIndex = item.index;
+      const hoverIndex = index;
+      if (dragIndex === hoverIndex) {
+        return;
+      }
+      moveTask(dragIndex, hoverIndex);
+      item.index = hoverIndex;
+    },
+  });
+
+  const ref = React.useRef(null);
+  const dragDropRef = drag(drop(ref));
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleOpen = () => setIsOpen(!isOpen);
+
+  return (
+    <Box
+      ref={dragDropRef}
+      p={4}
+      bg="white"
+      boxShadow="md"
+      borderRadius="md"
+      opacity={isDragging ? 0.5 : 1}
+    >
+      <HStack justifyContent="space-between">
+        <VStack align="start" spacing={1}>
+          <Text fontSize="sm" color="gray.500">{task.caseNumber}</Text>
+          <Heading size="md">{task.title}</Heading>
+          <Text>{task.owner}</Text>
+          <Text color="blue.500">{task.stage}</Text>
+        </VStack>
+        <Button onClick={toggleOpen}>
+          {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+        </Button>
+      </HStack>
+      <Collapse in={isOpen}>
+        <VStack align="start" mt={4} spacing={2}>
+          <Text><strong>Beskrivelse:</strong> {task.description}</Text>
+          <Text><strong>Relevans for BI:</strong> {task.relevanceForBI}</Text>
+          <Text><strong>Behov:</strong> {task.needForCourse}</Text>
+          <Text><strong>Målgruppe:</strong> {task.targetGroup}</Text>
+          <Text><strong>Vekstpotensial:</strong> {task.growthPotential}</Text>
+          <Text><strong>Faglige ressurser:</strong> {task.facultyResources}</Text>
+        </VStack>
+      </Collapse>
+      <HStack mt={4} justifyContent="flex-end">
+        <Button size="sm" leftIcon={<EditIcon />} onClick={() => handleEdit(task)}>
+          Rediger
+        </Button>
+        <Button size="sm" leftIcon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(task.id)}>
+          Slett
+        </Button>
+      </HStack>
+    </Box>
+  );
+};
 
 const TasksList = () => {
   const [tasks, setTasks] = useState([]);
@@ -111,10 +110,7 @@ const TasksList = () => {
       const newTasks = [...prevTasks];
       const [reorderedItem] = newTasks.splice(dragIndex, 1);
       newTasks.splice(hoverIndex, 0, reorderedItem);
-      return newTasks.map((task, index) => ({
-        ...task,
-        caseNumber: `${(index + 1).toString().padStart(2, '0')}/${new Date().getFullYear().toString().slice(-2)} - I`
-      }));
+      return newTasks;
     });
   }, []);
 
@@ -125,13 +121,7 @@ const TasksList = () => {
   const handleDelete = (taskId) => {
     axios.delete(`http://localhost:5000/tasks/${taskId}`)
       .then(() => {
-        setTasks(prevTasks => {
-          const updatedTasks = prevTasks.filter(task => task.id !== taskId);
-          return updatedTasks.map((task, index) => ({
-            ...task,
-            caseNumber: `${(index + 1).toString().padStart(2, '0')}/${new Date().getFullYear().toString().slice(-2)} - I`
-          }));
-        });
+        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
         toast({
           title: "Oppgave slettet",
           status: "success",
@@ -177,7 +167,7 @@ const TasksList = () => {
       });
   };
 
-  const updateTaskOrder = useCallback(() => {
+  const handleDragEnd = useCallback(() => {
     const taskIds = tasks.map(task => task.id);
     axios.post('http://localhost:5000/tasks/reorder', taskIds)
       .then(response => {
@@ -200,10 +190,6 @@ const TasksList = () => {
         });
       });
   }, [tasks, toast]);
-
-  const handleDragEnd = useCallback(() => {
-    updateTaskOrder();
-  }, [updateTaskOrder]);
 
   return (
     <DndProvider backend={HTML5Backend}>
