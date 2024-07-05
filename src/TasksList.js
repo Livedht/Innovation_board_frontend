@@ -2,9 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Box, VStack, Text, Button, useToast, HStack, Heading, Collapse } from "@chakra-ui/react";
+import { Box, VStack, Button, useToast, HStack, Heading, Flex, Text, IconButton, Collapse } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
-import AddTask from './AddTask'; // Legg til denne linjen
+import AddTask from './AddTask';
 
 const TaskItem = ({ task, index, moveTask, handleEdit, handleDelete }) => {
   const [{ isDragging }, drag] = useDrag({
@@ -46,17 +46,21 @@ const TaskItem = ({ task, index, moveTask, handleEdit, handleDelete }) => {
       borderRadius="md"
       opacity={isDragging ? 0.5 : 1}
     >
-      <HStack justifyContent="space-between">
+      <Flex justify="space-between" align="center">
         <VStack align="start" spacing={1}>
           <Text fontSize="sm" color="gray.500">{task.caseNumber}</Text>
           <Heading size="md">{task.title}</Heading>
           <Text>{task.owner}</Text>
           <Text color="blue.500">{task.stage}</Text>
         </VStack>
-        <Button onClick={toggleOpen}>
-          {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-        </Button>
-      </HStack>
+        <HStack>
+          <Button onClick={toggleOpen}>
+            {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          </Button>
+          <IconButton size="sm" icon={<EditIcon />} onClick={() => handleEdit(task)} />
+          <IconButton size="sm" icon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(task.id)} />
+        </HStack>
+      </Flex>
       <Collapse in={isOpen}>
         <VStack align="start" mt={4} spacing={2}>
           <Text><strong>Beskrivelse:</strong> {task.description}</Text>
@@ -67,20 +71,13 @@ const TaskItem = ({ task, index, moveTask, handleEdit, handleDelete }) => {
           <Text><strong>Faglige ressurser:</strong> {task.facultyResources}</Text>
         </VStack>
       </Collapse>
-      <HStack mt={4} justifyContent="flex-end">
-        <Button size="sm" leftIcon={<EditIcon />} onClick={() => handleEdit(task)}>
-          Rediger
-        </Button>
-        <Button size="sm" leftIcon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(task.id)}>
-          Slett
-        </Button>
-      </HStack>
     </Box>
   );
 };
 
 const TasksList = () => {
   const [tasks, setTasks] = useState([]);
+  const [isAddingTask, setIsAddingTask] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const toast = useToast();
 
@@ -117,6 +114,7 @@ const TasksList = () => {
 
   const handleEdit = (task) => {
     setEditingTask(task);
+    setIsAddingTask(true);
   };
 
   const handleDelete = (taskId) => {
@@ -149,6 +147,7 @@ const TasksList = () => {
           task.id === updatedTask.id ? response.data : task
         ));
         setEditingTask(null);
+        setIsAddingTask(false);
         toast({
           title: "Oppgave oppdatert",
           status: "success",
@@ -168,27 +167,95 @@ const TasksList = () => {
       });
   };
 
+  const handleAdd = (newTask) => {
+    axios.post('http://localhost:5000/tasks', newTask)
+      .then(response => {
+        setTasks(prevTasks => [...prevTasks, response.data]);
+        setIsAddingTask(false);
+        toast({
+          title: "Oppgave lagt til",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+      })
+      .catch(error => {
+        console.error('Error adding task:', error);
+        toast({
+          title: "Feil ved tillegg av oppgave",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  };
+
+  const handleImportNettskjema = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/import-nettskjema');
+      toast({
+        title: "Import successful",
+        description: `Imported ${response.data.imported_tasks.length} tasks`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      fetchTasks(); // Refresh the task list after import
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: error.response?.data?.error || "An unknown error occurred",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
-      <VStack spacing={4} align="stretch" width="100%">
-        {tasks.map((task, index) => (
-          <TaskItem
-            key={task.id}
-            task={task}
-            index={index}
-            moveTask={moveTask}
-            handleEdit={handleEdit}
-            handleDelete={handleDelete}
+      <Box p={4}>
+        <Flex justify="space-between" align="center" mb={4}>
+          <Heading size="lg">Saksdatabase</Heading>
+          <HStack>
+            <Button colorScheme="blue" onClick={() => setIsAddingTask(true)}>
+              Legg til ny idé
+            </Button>
+            <Button colorScheme="blue" onClick={handleImportNettskjema}>
+              Importer data
+            </Button>
+          </HStack>
+        </Flex>
+        <VStack spacing={4} align="stretch" width="100%">
+          {tasks.map((task, index) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              index={index}
+              moveTask={moveTask}
+              handleEdit={handleEdit}
+              handleDelete={handleDelete}
+            />
+          ))}
+        </VStack>
+        {isAddingTask && (
+          <AddTask
+            task={editingTask}
+            onTaskAdded={(task) => {
+              if (editingTask) {
+                handleUpdate(task);
+              } else {
+                handleAdd(task);
+              }
+            }}
+            onCancel={() => {
+              setIsAddingTask(false);
+              setEditingTask(null);
+            }}
           />
-        ))}
-      </VStack>
-      {editingTask && (
-        <AddTask
-          task={editingTask}
-          onTaskAdded={handleUpdate}
-          onCancel={() => setEditingTask(null)}
-        />
-      )}
+        )}
+      </Box>
     </DndProvider>
   );
 };
