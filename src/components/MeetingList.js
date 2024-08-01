@@ -1,6 +1,7 @@
+// src/components/MeetingList.js
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { Box, VStack, Button, useToast, Heading, HStack, Input, IconButton, Flex, Text, Collapse, Grid, GridItem } from "@chakra-ui/react";
+import { Box, VStack, Button, useToast, Heading, HStack, Input, IconButton, Flex, Text, Collapse, Grid, GridItem, Textarea } from "@chakra-ui/react";
 import { DeleteIcon, HamburgerIcon, CloseIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import AddMeeting from './AddMeeting';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -38,11 +39,13 @@ const DraggableTask = ({ task, onDropTask }) => {
   );
 };
 
-const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, isExpanded, onGenerateReport, onDeleteMeeting }) => {
+const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, isExpanded, onGenerateReport, onGenerateMinutes, onDeleteMeeting, onUpdateMinutes }) => {
   const [, drop] = useDrop({
     accept: 'TASK',
     drop: (item) => onDropTask(meeting.id, item.id),
   });
+
+  const [minutesInputs, setMinutesInputs] = useState({});
 
   const formatDate = (dateString) => {
     try {
@@ -59,6 +62,15 @@ const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, i
 
   const formattedDate = formatDate(meeting.date);
 
+  const handleMinutesChange = (taskId, value) => {
+    setMinutesInputs(prev => ({ ...prev, [taskId]: value }));
+  };
+
+  const handleSaveMinutes = (taskId) => {
+    onUpdateMinutes(meeting.id, taskId, minutesInputs[taskId] || '');
+    setMinutesInputs(prev => ({ ...prev, [taskId]: undefined }));
+  };
+
   return (
     <Box ref={drop} borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md">
       <Flex justify="space-between" align="center" p={4} bg="gray.50">
@@ -69,6 +81,9 @@ const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, i
           </Button>
           <Button size="sm" onClick={() => onGenerateReport(meeting.id)}>
             Generer sakspapirer
+          </Button>
+          <Button size="sm" onClick={() => onGenerateMinutes(meeting.id)}>
+            Generer møtereferat
           </Button>
           <IconButton
             size="sm"
@@ -98,6 +113,23 @@ const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, i
                   aria-label="Remove task from meeting"
                 />
               </Flex>
+              <Box mt={2}>
+                <Text fontSize="sm" fontWeight="bold">Møtereferat:</Text>
+                <Textarea
+                  value={minutesInputs[task.id] !== undefined ? minutesInputs[task.id] : task.minutes || ''}
+                  onChange={(e) => handleMinutesChange(task.id, e.target.value)}
+                  placeholder="Skriv møtereferat her..."
+                  size="sm"
+                />
+                <Button
+                  mt={2}
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={() => handleSaveMinutes(task.id)}
+                >
+                  Lagre møtereferat
+                </Button>
+              </Box>
             </Box>
           ))}
         </VStack>
@@ -269,6 +301,65 @@ const MeetingList = ({ onSelectMeeting }) => {
       });
   };
 
+  const handleGenerateMinutes = (meetingId) => {
+    axios.get(`http://localhost:5000/meetings/${meetingId}/generate_minutes`, { responseType: 'blob' })
+      .then(response => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `meeting_${meetingId}_minutes.docx`);
+        document.body.appendChild(link);
+        link.click();
+        toast({
+          title: "Møtereferat generert",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+      })
+      .catch(error => {
+        toast({
+          title: "Feil ved generering av møtereferat",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  };
+
+  const handleUpdateMinutes = (meetingId, taskId, minutes) => {
+    axios.put(`http://localhost:5000/meetings/${meetingId}/tasks/${taskId}`, { minutes })
+      .then(() => {
+        setMeetings(prevMeetings => prevMeetings.map(meeting => {
+          if (meeting.id === meetingId) {
+            return {
+              ...meeting,
+              tasks: meeting.tasks.map(task =>
+                task.id === taskId ? { ...task, minutes } : task
+              )
+            };
+          }
+          return meeting;
+        }));
+        toast({
+          title: "Møtereferat lagret",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+      })
+      .catch(error => {
+        toast({
+          title: "Feil ved lagring av møtereferat",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  };
+
   const formatDate = (dateString) => {
     try {
       const date = parseISO(dateString);
@@ -314,7 +405,9 @@ const MeetingList = ({ onSelectMeeting }) => {
                   onToggleExpand={handleToggleExpand}
                   isExpanded={expandedMeetings[meeting.id]}
                   onGenerateReport={handleGenerateReport}
+                  onGenerateMinutes={handleGenerateMinutes}
                   onDeleteMeeting={handleDeleteMeeting}
+                  onUpdateMinutes={handleUpdateMinutes}
                 />
               ))}
             </VStack>

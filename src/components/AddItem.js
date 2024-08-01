@@ -1,3 +1,4 @@
+// src/components/AddItem.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
@@ -14,11 +15,11 @@ import {
   Input,
   Textarea,
   VStack,
-  Select,  // Import Select component
+  Select,
   useToast
 } from "@chakra-ui/react";
 
-const AddTask = ({ onTaskAdded, onCancel, task }) => {
+const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
   const [title, setTitle] = useState('');
   const [owner, setOwner] = useState('');
   const [description, setDescription] = useState('');
@@ -27,28 +28,28 @@ const AddTask = ({ onTaskAdded, onCancel, task }) => {
   const [targetGroup, setTargetGroup] = useState('');
   const [growthPotential, setGrowthPotential] = useState('');
   const [facultyResources, setFacultyResources] = useState('');
-  const [stage, setStage] = useState('Idea Description');  // Set default stage to "Idea Description"
+  const [stage, setStage] = useState('Idea Description');
 
   const toast = useToast();
 
   useEffect(() => {
-    if (task) {
-      setTitle(task.title);
-      setOwner(task.owner);
-      setDescription(task.description);
-      setRelevanceForBI(task.relevanceForBI);
-      setNeedForCourse(task.needForCourse);
-      setTargetGroup(task.targetGroup);
-      setGrowthPotential(task.growthPotential);
-      setFacultyResources(task.facultyResources);
-      setStage(task.stage);  // Set stage if editing
+    if (item) {
+      setTitle(item.title);
+      setOwner(item.owner);
+      setDescription(item.description);
+      setRelevanceForBI(item.relevanceForBI);
+      setNeedForCourse(item.needForCourse);
+      setTargetGroup(item.targetGroup);
+      setGrowthPotential(item.growthPotential);
+      setFacultyResources(item.facultyResources);
+      setStage(item.stage);
     }
-  }, [task]);
+  }, [item]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    const newTask = {
+    const newItem = {
       title,
       owner,
       description,
@@ -57,19 +58,20 @@ const AddTask = ({ onTaskAdded, onCancel, task }) => {
       targetGroup,
       growthPotential,
       facultyResources,
-      stage  // Include stage in new task
+      stage
     };
 
-    if (task) {
-      axios.put(`http://localhost:5000/tasks/${task.id}`, newTask)
+    if (item) {
+      axios.put(`http://localhost:5000/tasks/${item.id}`, newItem)
         .then(response => {
-          onTaskAdded(response.data);
+          onItemAdded(response.data);
           toast({
             title: "Oppgave oppdatert",
             status: "success",
             duration: 2000,
             isClosable: true,
           });
+          onClose();
         })
         .catch(error => {
           console.error('Error updating task:', error);
@@ -82,15 +84,16 @@ const AddTask = ({ onTaskAdded, onCancel, task }) => {
           });
         });
     } else {
-      axios.post('http://localhost:5000/tasks', newTask)
+      axios.post('http://localhost:5000/tasks', newItem)
         .then(response => {
-          onTaskAdded(response.data);
+          onItemAdded(response.data);
           toast({
             title: "Oppgave lagt til",
             status: "success",
             duration: 2000,
             isClosable: true,
           });
+          onClose();
         })
         .catch(error => {
           console.error('Error adding task:', error);
@@ -106,10 +109,10 @@ const AddTask = ({ onTaskAdded, onCancel, task }) => {
   };
 
   return (
-    <Modal isOpen={true} onClose={onCancel}>
+    <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>{task ? 'Rediger idé' : 'Legg til ny idé'}</ModalHeader>
+        <ModalHeader>{item ? 'Rediger idé' : 'Legg til ny idé'}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <form onSubmit={handleSubmit}>
@@ -160,13 +163,13 @@ const AddTask = ({ onTaskAdded, onCancel, task }) => {
         </ModalBody>
         <ModalFooter>
           <Button colorScheme="blue" mr={3} onClick={handleSubmit}>
-            {task ? 'Oppdater' : 'Legg til'}
+            {item ? 'Oppdater' : 'Legg til'}
           </Button>
-          <Button variant="ghost" onClick={onCancel}>Avbryt</Button>
+          <Button variant="ghost" onClick={onClose}>Avbryt</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
   );
 };
 
-export default AddTask;
+export default AddItem;
