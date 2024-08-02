@@ -22,20 +22,25 @@ const AddMeeting = ({ isOpen, onClose }) => {
   const [number, setNumber] = useState('');
   const [location, setLocation] = useState('A4Y-117');
   const toast = useToast();
-  const { setMeetings, fetchMeetings } = useMeeting();
+  const { fetchMeetings } = useMeeting();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    const formattedDate = new Date(date).toISOString(); // Format the date
+
     const newMeeting = {
-      date,
+      date: formattedDate,
       number,
-      location,
+      location
     };
+
+    console.log('Sending meeting data:', newMeeting);
 
     try {
       const response = await axios.post('http://localhost:5000/meetings', newMeeting);
-      fetchMeetings(); // Refetch meetings to update the list
+      console.log('Server response:', response.data);
+      fetchMeetings();
       toast({
         title: "Møte lagt til",
         status: "success",
@@ -44,10 +49,10 @@ const AddMeeting = ({ isOpen, onClose }) => {
       });
       onClose();
     } catch (error) {
-      console.error('Error adding meeting:', error);
+      console.error('Error adding meeting:', error.response ? error.response.data : error.message);
       toast({
         title: "Feil ved tillegg av møte",
-        description: error.message,
+        description: error.response ? JSON.stringify(error.response.data) : error.message,
         status: "error",
         duration: 3000,
         isClosable: true,

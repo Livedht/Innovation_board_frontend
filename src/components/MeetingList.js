@@ -96,7 +96,7 @@ const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, i
       </Flex>
       <Collapse in={isExpanded} animateOpacity>
         <VStack spacing={2} align="stretch" p={4}>
-          {meeting.tasks.map(task => (
+          {meeting.tasks && meeting.tasks.map(task => (
             <Box key={task.id} p={3} bg="white" borderWidth="1px" borderRadius="md" boxShadow="sm">
               <Flex justify="space-between" align="center">
                 <VStack align="start" spacing={1}>
@@ -150,9 +150,11 @@ const MeetingList = ({ onSelectMeeting }) => {
   const fetchMeetings = useCallback(() => {
     axios.get('http://localhost:5000/meetings')
       .then(response => {
+        console.log('Fetched meetings:', response.data);
         setMeetings(response.data);
       })
       .catch(error => {
+        console.error('Error fetching meetings:', error);
         toast({
           title: "Feil ved henting av møter",
           description: error.message,
@@ -185,7 +187,27 @@ const MeetingList = ({ onSelectMeeting }) => {
   }, [fetchMeetings, fetchTasks]);
 
   const handleAddMeeting = (newMeeting) => {
-    setMeetings(prevMeetings => [...prevMeetings, newMeeting]);
+    axios.post('http://localhost:5000/meetings', newMeeting)
+      .then(response => {
+        setMeetings(prevMeetings => [...prevMeetings, response.data]);
+        toast({
+          title: "Møte lagt til",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+        setIsAddingMeeting(false);
+      })
+      .catch(error => {
+        console.error('Error adding meeting:', error);
+        toast({
+          title: "Feil ved tillegg av møte",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
   };
 
   const handleDeleteMeeting = (meetingId) => {

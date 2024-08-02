@@ -1,39 +1,13 @@
-// src/components/ItemsList.js
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Box, VStack, Button, useToast, HStack, Heading, Flex, Text, IconButton, Collapse, Input } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import { FaFilePdf, FaFileExcel, FaFileWord, FaFileAlt } from 'react-icons/fa';
 import AddItem from './AddItem';
 
 const ItemCard = ({ item, index, moveItem, handleEdit, handleDelete, handleNumberChange }) => {
-  const [{ isDragging }, drag] = useDrag({
-    type: 'ITEM',
-    item: { id: item.id, index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  const [, drop] = useDrop({
-    accept: 'ITEM',
-    hover(draggedItem, monitor) {
-      if (!ref.current) {
-        return;
-      }
-      const dragIndex = draggedItem.index;
-      const hoverIndex = index;
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      moveItem(dragIndex, hoverIndex);
-      draggedItem.index = hoverIndex;
-    },
-  });
-
-  const ref = React.useRef(null);
-  const dragDropRef = drag(drop(ref));
   const [isOpen, setIsOpen] = useState(false);
   const [itemNumber, setItemNumber] = useState(item.caseNumber);
 
@@ -44,14 +18,32 @@ const ItemCard = ({ item, index, moveItem, handleEdit, handleDelete, handleNumbe
     handleNumberChange(item.id, e.target.value);
   };
 
+  const getFileIcon = (url) => {
+    if (!url) return null;
+
+    const extension = url.split('.').pop().toLowerCase();
+    const iconProps = { size: "24px" }; // Common props for all icons
+
+    switch (extension) {
+      case 'pdf':
+        return <FaFilePdf color="#f40f02" {...iconProps} />;
+      case 'xlsx':
+      case 'xls':
+        return <FaFileExcel color="#1D6F42" {...iconProps} />;
+      case 'docx':
+      case 'doc':
+        return <FaFileWord color="#2B579A" {...iconProps} />;
+      default:
+        return <FaFileAlt color="#7d7d7d" {...iconProps} />;
+    }
+  };
+
   return (
     <Box
-      ref={dragDropRef}
       p={4}
       bg="white"
       boxShadow="md"
       borderRadius="md"
-      opacity={isDragging ? 0.5 : 1}
     >
       <Flex justify="space-between" align="center">
         <VStack align="start" spacing={1}>
@@ -63,6 +55,14 @@ const ItemCard = ({ item, index, moveItem, handleEdit, handleDelete, handleNumbe
               onChange={handleItemNumberChange}
               width="100px"
             />
+            {item.attachment_url && (
+              <Flex align="center" ml={2}>
+                {getFileIcon(item.attachment_url)}
+                <a href={item.attachment_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '5px' }}>
+                  View Attachment
+                </a>
+              </Flex>
+            )}
           </Flex>
           <Heading size="md">{item.title}</Heading>
           <Text>{item.owner}</Text>
@@ -89,6 +89,8 @@ const ItemCard = ({ item, index, moveItem, handleEdit, handleDelete, handleNumbe
     </Box>
   );
 };
+
+
 
 const ItemsList = () => {
   const [items, setItems] = useState([]);
@@ -210,13 +212,19 @@ const ItemsList = () => {
     setItems(prevItems => prevItems.map(item =>
       item.id === itemId ? { ...item, caseNumber: newNumber } : item
     ));
-    // You might want to save this change to the backend as well
     axios.put(`http://localhost:5000/tasks/${itemId}`, { caseNumber: newNumber })
+      .then(response => {
+        console.log('Item number updated successfully:', response.data);
+      })
       .catch(error => {
         console.error('Error updating item number:', error);
+        // Revert the change in the UI if the server update fails
+        setItems(prevItems => prevItems.map(item =>
+          item.id === itemId ? { ...item, caseNumber: item.caseNumber } : item
+        ));
         toast({
           title: "Feil ved oppdatering av oppgavenummer",
-          description: error.message,
+          description: error.response?.data?.error || error.message,
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -234,7 +242,7 @@ const ItemsList = () => {
         duration: 5000,
         isClosable: true,
       });
-      fetchItems(); // Refresh the item list after import
+      fetchItems();  // Refresh the items list after import
     } catch (error) {
       toast({
         title: "Import failed",
@@ -275,7 +283,11 @@ const ItemsList = () => {
         </VStack>
         {isAddingItem && (
           <AddItem
-            item={editingItem}
+            isOpen={isAddingItem}
+            onClose={() => {
+              setIsAddingItem(false);
+              setEditingItem(null);
+            }}
             onItemAdded={(item) => {
               if (editingItem) {
                 handleUpdate(item);
@@ -283,10 +295,7 @@ const ItemsList = () => {
                 handleAdd(item);
               }
             }}
-            onCancel={() => {
-              setIsAddingItem(false);
-              setEditingItem(null);
-            }}
+            item={editingItem}
           />
         )}
       </Box>
