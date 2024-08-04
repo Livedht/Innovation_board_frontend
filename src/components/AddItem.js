@@ -23,11 +23,11 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
   const [title, setTitle] = useState('');
   const [owner, setOwner] = useState('');
   const [description, setDescription] = useState('');
-  const [relevanceForBI, setRelevanceForBI] = useState('');
-  const [needForCourse, setNeedForCourse] = useState('');
-  const [targetGroup, setTargetGroup] = useState('');
-  const [growthPotential, setGrowthPotential] = useState('');
-  const [facultyResources, setFacultyResources] = useState('');
+  const [relevance_for_bi, setRelevanceForBI] = useState('');
+  const [need_for_course, setNeedForCourse] = useState('');
+  const [target_group, setTargetGroup] = useState('');
+  const [growth_potential, setGrowthPotential] = useState('');
+  const [faculty_resources, setFacultyResources] = useState('');
   const [stage, setStage] = useState('Idea Description');
 
   const toast = useToast();
@@ -37,11 +37,11 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
       setTitle(item.title);
       setOwner(item.owner);
       setDescription(item.description);
-      setRelevanceForBI(item.relevanceForBI);
-      setNeedForCourse(item.needForCourse);
-      setTargetGroup(item.targetGroup);
-      setGrowthPotential(item.growthPotential);
-      setFacultyResources(item.facultyResources);
+      setRelevanceForBI(item.relevance_for_bi);
+      setNeedForCourse(item.need_for_course);
+      setTargetGroup(item.target_group);
+      setGrowthPotential(item.growth_potential);
+      setFacultyResources(item.faculty_resources);
       setStage(item.stage);
     }
   }, [item]);
@@ -53,11 +53,11 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
       title,
       owner,
       description,
-      relevanceForBI,
-      needForCourse,
-      targetGroup,
-      growthPotential,
-      facultyResources,
+      relevance_for_bi,
+      need_for_course,
+      target_group,
+      growth_potential,
+      faculty_resources,
       stage
     };
 
@@ -131,23 +131,23 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
               </FormControl>
               <FormControl>
                 <FormLabel>Relevans for BI</FormLabel>
-                <Textarea value={relevanceForBI} onChange={(e) => setRelevanceForBI(e.target.value)} required />
+                <Textarea value={relevance_for_bi} onChange={(e) => setRelevanceForBI(e.target.value)} required />
               </FormControl>
               <FormControl>
                 <FormLabel>Behov for kurset/idéen</FormLabel>
-                <Textarea value={needForCourse} onChange={(e) => setNeedForCourse(e.target.value)} required />
+                <Textarea value={need_for_course} onChange={(e) => setNeedForCourse(e.target.value)} required />
               </FormControl>
               <FormControl>
                 <FormLabel>Målgruppe</FormLabel>
-                <Textarea value={targetGroup} onChange={(e) => setTargetGroup(e.target.value)} required />
+                <Textarea value={target_group} onChange={(e) => setTargetGroup(e.target.value)} required />
               </FormControl>
               <FormControl>
                 <FormLabel>Vekstpotensial</FormLabel>
-                <Textarea value={growthPotential} onChange={(e) => setGrowthPotential(e.target.value)} required />
+                <Textarea value={growth_potential} onChange={(e) => setGrowthPotential(e.target.value)} required />
               </FormControl>
               <FormControl>
                 <FormLabel>Faglige ressurser</FormLabel>
-                <Textarea value={facultyResources} onChange={(e) => setFacultyResources(e.target.value)} required />
+                <Textarea value={faculty_resources} onChange={(e) => setFacultyResources(e.target.value)} required />
               </FormControl>
               <FormControl>
                 <FormLabel>Status</FormLabel>

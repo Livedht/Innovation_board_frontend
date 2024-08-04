@@ -78,12 +78,11 @@ const ItemCard = ({ item, index, moveItem, handleEdit, handleDelete, handleNumbe
       </Flex>
       <Collapse in={isOpen}>
         <VStack align="start" mt={4} spacing={2}>
-          <Text><strong>Beskrivelse:</strong> {item.description}</Text>
-          <Text><strong>Relevans for BI:</strong> {item.relevanceForBI}</Text>
-          <Text><strong>Behov:</strong> {item.needForCourse}</Text>
-          <Text><strong>Målgruppe:</strong> {item.targetGroup}</Text>
-          <Text><strong>Vekstpotensial:</strong> {item.growthPotential}</Text>
-          <Text><strong>Faglige ressurser:</strong> {item.facultyResources}</Text>
+          <Text><strong>Relevans for BI:</strong> {item.relevance_for_bi}</Text>
+          <Text><strong>Behov:</strong> {item.need_for_course}</Text>
+          <Text><strong>Målgruppe:</strong> {item.target_group}</Text>
+          <Text><strong>Vekstpotensial:</strong> {item.growth_potential}</Text>
+          <Text><strong>Faglige ressurser:</strong> {item.faculty_resources}</Text>
         </VStack>
       </Collapse>
     </Box>
