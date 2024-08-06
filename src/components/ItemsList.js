@@ -2,94 +2,111 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Box, VStack, Button, useToast, HStack, Heading, Flex, Text, IconButton, Collapse, Input } from "@chakra-ui/react";
+import { Box, VStack, HStack, Heading, Text, Button, IconButton, Collapse, Input, Link, Flex, Spacer, useToast } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import { FaFilePdf, FaFileExcel, FaFileWord, FaFileAlt } from 'react-icons/fa';
 import AddItem from './AddItem';
 
-const ItemCard = ({ item, index, moveItem, handleEdit, handleDelete, handleNumberChange }) => {
+const ItemCard = ({ item, handleEdit, handleDelete, handleNumberChange, handleFileUpload }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [itemNumber, setItemNumber] = useState(item.caseNumber);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const toggleOpen = () => setIsOpen(!isOpen);
 
   const handleItemNumberChange = (e) => {
     setItemNumber(e.target.value);
-    handleNumberChange(item.id, e.target.value);
   };
 
-  const getFileIcon = (url) => {
-    if (!url) return null;
+  const handleItemNumberBlur = () => {
+    handleNumberChange(item.id, itemNumber);
+  };
 
-    const extension = url.split('.').pop().toLowerCase();
-    const iconProps = { size: "24px" }; // Common props for all icons
-
+  const getFileIcon = (filename) => {
+    if (!filename) return <FaFileAlt color="#7d7d7d" size="24px" />;
+    const extension = filename.split('.').pop().toLowerCase();
+    const iconProps = { size: "24px" };
     switch (extension) {
-      case 'pdf':
-        return <FaFilePdf color="#f40f02" {...iconProps} />;
+      case 'pdf': return <FaFilePdf color="#f40f02" {...iconProps} />;
       case 'xlsx':
-      case 'xls':
-        return <FaFileExcel color="#1D6F42" {...iconProps} />;
+      case 'xls': return <FaFileExcel color="#1D6F42" {...iconProps} />;
       case 'docx':
-      case 'doc':
-        return <FaFileWord color="#2B579A" {...iconProps} />;
-      default:
-        return <FaFileAlt color="#7d7d7d" {...iconProps} />;
+      case 'doc': return <FaFileWord color="#2B579A" {...iconProps} />;
+      default: return <FaFileAlt color="#7d7d7d" {...iconProps} />;
+    }
+  };
+
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+  };
+
+  const handleSaveFile = () => {
+    if (selectedFile) {
+      handleFileUpload(item.id, selectedFile);
+      setSelectedFile(null);
     }
   };
 
   return (
-    <Box
-      p={4}
-      bg="white"
-      boxShadow="md"
-      borderRadius="md"
-    >
-      <Flex justify="space-between" align="center">
-        <VStack align="start" spacing={1}>
-          <Flex align="center">
-            <Text fontSize="sm" color="gray.500" mr={2}>Item Number:</Text>
-            <Input
-              size="sm"
-              value={itemNumber}
-              onChange={handleItemNumberChange}
-              width="100px"
-            />
-            {item.attachment_url && (
-              <Flex align="center" ml={2}>
-                {getFileIcon(item.attachment_url)}
-                <a href={item.attachment_url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '5px' }}>
-                  View Attachment
-                </a>
-              </Flex>
-            )}
-          </Flex>
-          <Heading size="md">{item.title}</Heading>
-          <Text>{item.owner}</Text>
-          <Text color="blue.500">{item.stage}</Text>
+    <Box borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" p={4}>
+      <VStack align="stretch" spacing={3}>
+        <Flex align="center">
+          <Input
+            size="sm"
+            value={itemNumber}
+            onChange={handleItemNumberChange}
+            onBlur={handleItemNumberBlur} // Save on blur
+            width="100px"
+            mr={2}
+          />
+          <Heading size="md" flex={1}>{item.title}</Heading>
+          <Spacer />
+          <HStack>
+            <IconButton size="sm" icon={<EditIcon />} onClick={() => handleEdit(item)} />
+            <IconButton size="sm" icon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(item.id)} />
+            <Button size="sm" onClick={toggleOpen}>
+              {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            </Button>
+          </HStack>
+        </Flex>
+        
+        <Text fontSize="sm" color="gray.600">{item.owner}</Text>
+        <Text fontSize="sm" color="blue.500">{item.stage}</Text>
+        
+        {item.attachments && item.attachments.length > 0 && (
+        <VStack align="stretch" spacing={2}>
+          <Text fontWeight="bold">Attachments:</Text>
+          {item.attachments.map((attachment, index) => (
+            <HStack key={index}>
+              {getFileIcon(attachment.filename)}
+              <Link href={attachment.url} isExternal fontSize="sm" color="blue.500">
+                {attachment.filename}
+              </Link>
+            </HStack>
+          ))}
         </VStack>
-        <HStack>
-          <Button onClick={toggleOpen}>
-            {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+      )}
+        
+        <HStack className="file-upload-container">
+          <Input type="file" onChange={handleFileChange} size="sm" />
+          <Button size="sm" onClick={handleSaveFile} isDisabled={!selectedFile}>
+            Save File
           </Button>
-          <IconButton size="sm" icon={<EditIcon />} onClick={() => handleEdit(item)} />
-          <IconButton size="sm" icon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(item.id)} />
         </HStack>
-      </Flex>
-      <Collapse in={isOpen}>
-        <VStack align="start" mt={4} spacing={2}>
-          <Text><strong>Relevans for BI:</strong> {item.relevance_for_bi}</Text>
-          <Text><strong>Behov:</strong> {item.need_for_course}</Text>
-          <Text><strong>Målgruppe:</strong> {item.target_group}</Text>
-          <Text><strong>Vekstpotensial:</strong> {item.growth_potential}</Text>
-          <Text><strong>Faglige ressurser:</strong> {item.faculty_resources}</Text>
-        </VStack>
-      </Collapse>
+
+        <Collapse in={isOpen}>
+          <VStack align="start" spacing={2} mt={2}>
+            <Text><strong>Relevans for BI:</strong> {item.relevance_for_bi}</Text>
+            <Text><strong>Behov:</strong> {item.need_for_course}</Text>
+            <Text><strong>Målgruppe:</strong> {item.target_group}</Text>
+            <Text><strong>Vekstpotensial:</strong> {item.growth_potential}</Text>
+            <Text><strong>Faglige ressurser:</strong> {item.faculty_resources}</Text>
+          </VStack>
+        </Collapse>
+      </VStack>
     </Box>
   );
 };
-
-
 
 const ItemsList = () => {
   const [items, setItems] = useState([]);
@@ -208,19 +225,21 @@ const ItemsList = () => {
   };
 
   const handleNumberChange = (itemId, newNumber) => {
-    setItems(prevItems => prevItems.map(item =>
-      item.id === itemId ? { ...item, caseNumber: newNumber } : item
-    ));
     axios.put(`http://localhost:5000/tasks/${itemId}`, { caseNumber: newNumber })
       .then(response => {
-        console.log('Item number updated successfully:', response.data);
+        setItems(prevItems => prevItems.map(item =>
+          item.id === itemId ? { ...item, caseNumber: newNumber } : item
+        ));
+        reorderItems();
+        toast({
+          title: "Oppgavenummer oppdatert",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
       })
       .catch(error => {
         console.error('Error updating item number:', error);
-        // Revert the change in the UI if the server update fails
-        setItems(prevItems => prevItems.map(item =>
-          item.id === itemId ? { ...item, caseNumber: item.caseNumber } : item
-        ));
         toast({
           title: "Feil ved oppdatering av oppgavenummer",
           description: error.response?.data?.error || error.message,
@@ -229,6 +248,60 @@ const ItemsList = () => {
           isClosable: true,
         });
       });
+  };
+
+  const reorderItems = () => {
+    const sortedItems = [...items].sort((a, b) => a.caseNumber - b.caseNumber);
+    setItems(sortedItems);
+    const newOrder = sortedItems.map(item => item.id);
+    axios.post('http://localhost:5000/tasks/reorder', newOrder)
+      .then(response => {
+        setItems(response.data);
+      })
+      .catch(error => {
+        console.error('Error reordering items:', error);
+        toast({
+          title: "Feil ved rekkefølgeendring",
+          description: error.message,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  };
+
+  const handleFileUpload = (itemId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    axios.post(`http://localhost:5000/tasks/${itemId}/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    .then(response => {
+      setItems(prevItems => prevItems.map(item => 
+        item.id === itemId 
+          ? { ...item, attachments: [...(item.attachments || []), response.data.attachment] }
+          : item
+      ));
+      toast({
+        title: "File uploaded successfully",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    })
+    .catch(error => {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Error uploading file",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    });
   };
 
   const handleImportNettskjema = async () => {
@@ -277,6 +350,7 @@ const ItemsList = () => {
               handleEdit={handleEdit}
               handleDelete={handleDelete}
               handleNumberChange={handleNumberChange}
+              handleFileUpload={handleFileUpload}
             />
           ))}
         </VStack>

@@ -11,3 +11,18 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.file-upload-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-upload-container input[type="file"] {
+  flex: none;
+  width: auto;
+}
+
+.file-upload-container .file-name {
+  flex: 1;
+}

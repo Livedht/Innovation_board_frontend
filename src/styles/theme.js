@@ -47,6 +47,14 @@ const theme = extendTheme({
                 fontWeight: 300,
             },
         },
+        Input: {
+            baseStyle: {
+                field: {
+                    flex: 'none',
+                    width: 'auto',
+                },
+            },
+        },
     },
 });
 
