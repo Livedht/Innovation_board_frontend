@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Box, Heading, SimpleGrid, VStack, Text, Stat, StatLabel, StatNumber, StatHelpText, Progress, Flex, Badge, useColorModeValue, Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon, Divider } from "@chakra-ui/react";
+import { Box, Heading, SimpleGrid, VStack, Text, Stat, StatLabel, StatNumber, StatHelpText, Progress, Flex, Badge, useColorModeValue, Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon } from "@chakra-ui/react";
 import { FaLightbulb, FaBriefcase, FaBook, FaCheckCircle, FaCalendarAlt, FaHistory } from 'react-icons/fa';
 import { format, parseISO, isValid, isFuture, isPast } from 'date-fns';
 import { nb } from 'date-fns/locale';
@@ -15,9 +15,9 @@ const ItemCard = ({ item }) => {
         <Text fontWeight="bold">{item.casenumber} - {item.title}</Text>
         <Badge colorScheme={
           item.stage === 'Idea Description' ? 'blue' :
-          item.stage === 'Business Case' ? 'green' :
-          item.stage === 'Course Description' ? 'purple' :
-          'gray'
+            item.stage === 'Business Case' ? 'green' :
+              item.stage === 'Course Description' ? 'purple' :
+                'gray'
         }>{item.stage}</Badge>
       </Flex>
       <Text mt={2} fontSize="sm" color="gray.500">{item.owner}</Text>
@@ -126,7 +126,7 @@ const Dashboard = () => {
   return (
     <Box>
       <Heading mb={6}>Dashboard</Heading>
-      
+
       <SimpleGrid columns={[2, null, 4]} spacing={6} mb={10}>
         {['Total Cases', 'Idea Description', 'Business Case', 'Course Description'].map((label, index) => (
           <Stat key={label} bg={bgColor} p={4} borderRadius="md" borderWidth={1} borderColor={borderColor} boxShadow="sm">
