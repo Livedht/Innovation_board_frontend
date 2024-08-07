@@ -102,7 +102,8 @@ const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, i
                   <Text fontSize="sm" color="gray.500">{task.casenumber}</Text>
                   <Heading size="sm">{task.title}</Heading>
                   <Text fontSize="sm">{task.owner}</Text>
-                  <Text fontSize="sm" color="blue.500">{task.stage}</Text>
+                  <Text fontSize="sm" color="blue.500">Stage at meeting: {task.stage_at_meeting}</Text>
+                  <Text fontSize="sm" color="green.500">Current stage: {task.stage}</Text>
                 </VStack>
                 <IconButton
                   size="sm"
@@ -249,10 +250,16 @@ const MeetingList = ({ onSelectMeeting }) => {
 
     if (meeting && task) {
       axios.post(`http://localhost:5000/meetings/${meetingId}/tasks`, { task_id: taskId })
-        .then(() => {
+        .then((response) => {
           setMeetings(prevMeetings => prevMeetings.map(m => {
             if (m.id === meetingId) {
-              return { ...m, tasks: [...m.tasks, task] };
+              return {
+                ...m,
+                tasks: [
+                  ...m.tasks,
+                  { ...task, stage_at_meeting: response.data.stage_at_meeting }
+                ]
+              };
             }
             return m;
           }));

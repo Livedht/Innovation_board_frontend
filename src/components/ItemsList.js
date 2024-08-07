@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Box, VStack, HStack, Heading, Text, Button, IconButton, Collapse, Input, Link, Flex, Spacer, useToast, InputGroup, InputLeftElement } from "@chakra-ui/react";
+import { Box, VStack, HStack, Heading, Text, Button, IconButton, Collapse, Input, Link, Flex, Spacer, useToast, InputGroup, InputLeftElement, Table, Thead, Tbody, Tr, Th, Td } from "@chakra-ui/react";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon, SearchIcon } from '@chakra-ui/icons';
 import { FaFilePdf, FaFileExcel, FaFileWord, FaFileAlt } from 'react-icons/fa';
 import AddItem from './AddItem';
@@ -11,8 +9,20 @@ const ItemCard = ({ item, handleEdit, handleDelete, handleNumberChange, handleFi
   const [isOpen, setIsOpen] = useState(false);
   const [itemNumber, setItemNumber] = useState(item.casenumber || '');
   const [selectedFile, setSelectedFile] = useState(null);
+  const [meetingHistory, setMeetingHistory] = useState([]);
 
   const toggleOpen = () => setIsOpen(!isOpen);
+
+  useEffect(() => {
+    // Fetch meeting history for this item
+    axios.get(`http://localhost:5000/tasks/${item.id}/meetings`)
+      .then(response => {
+        setMeetingHistory(response.data);
+      })
+      .catch(error => {
+        console.error('Error fetching meeting history:', error);
+      });
+  }, [item.id]);
 
   const handleItemNumberChange = (e) => {
     setItemNumber(e.target.value);
@@ -31,332 +41,353 @@ const ItemCard = ({ item, handleEdit, handleDelete, handleNumberChange, handleFi
       case 'xlsx':
       case 'xls': return <FaFileExcel color="#1D6F42" {...iconProps} />;
       case 'docx':
-      case 'doc': return <FaFileWord color="#2B579A" {...iconProps} />;
-      default: return <FaFileAlt color="#7d7d7d" {...iconProps} />;
-    }
-  };
-
-  const handleFileChange = (event) => {
-    setSelectedFile(event.target.files[0]);
-  };
-
-  const handleSaveFile = () => {
-    if (selectedFile) {
-      handleFileUpload(item.id, selectedFile);
-      setSelectedFile(null);
-    }
-  };
-
-  return (
-    <Box borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" p={4}>
-      <VStack align="stretch" spacing={3}>
-        <Flex align="center">
-          <Input
-            size="sm"
-            value={itemNumber}
-            onChange={handleItemNumberChange}
-            onBlur={handleItemNumberBlur}
-            width="100px"
-            mr={2}
-            placeholder="Item #"
-          />
-          <Heading size="md" flex={1}>{item.title}</Heading>
-          <Spacer />
-          <HStack>
-            <IconButton size="sm" icon={<EditIcon />} onClick={() => handleEdit(item)} />
-            <IconButton size="sm" icon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(item.id)} />
-            <Button size="sm" onClick={toggleOpen}>
-              {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+        case 'doc': return <FaFileWord color="#2B579A" {...iconProps} />;
+        default: return <FaFileAlt color="#7d7d7d" {...iconProps} />;
+      }
+    };
+  
+    const handleFileChange = (event) => {
+      setSelectedFile(event.target.files[0]);
+    };
+  
+    const handleSaveFile = () => {
+      if (selectedFile) {
+        handleFileUpload(item.id, selectedFile);
+        setSelectedFile(null);
+      }
+    };
+  
+    return (
+      <Box borderWidth="1px" borderRadius="lg" overflow="hidden" boxShadow="md" bg="white" p={4}>
+        <VStack align="stretch" spacing={3}>
+          <Flex align="center">
+            <Input
+              size="sm"
+              value={itemNumber}
+              onChange={handleItemNumberChange}
+              onBlur={handleItemNumberBlur}
+              width="100px"
+              mr={2}
+              placeholder="Item #"
+            />
+            <Heading size="md" flex={1}>{item.title}</Heading>
+            <Spacer />
+            <HStack>
+              <IconButton size="sm" icon={<EditIcon />} onClick={() => handleEdit(item)} />
+              <IconButton size="sm" icon={<DeleteIcon />} colorScheme="red" onClick={() => handleDelete(item.id)} />
+              <Button size="sm" onClick={toggleOpen}>
+                {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              </Button>
+            </HStack>
+          </Flex>
+          
+          <Text fontSize="sm" color="gray.600">{item.owner}</Text>
+          <Text fontSize="sm" color="blue.500">{item.stage}</Text>
+          
+          {item.attachments && item.attachments.length > 0 && (
+          <VStack align="stretch" spacing={2}>
+            <Text fontWeight="bold">Attachments:</Text>
+            {item.attachments.map((attachment, index) => (
+              <HStack key={index}>
+                {getFileIcon(attachment.filename)}
+                <Link href={attachment.url} isExternal fontSize="sm" color="blue.500">
+                  {attachment.filename}
+                </Link>
+              </HStack>
+            ))}
+          </VStack>
+        )}
+          
+          <HStack className="file-upload-container">
+            <Input type="file" onChange={handleFileChange} size="sm" />
+            <Button size="sm" onClick={handleSaveFile} isDisabled={!selectedFile}>
+              Save File
             </Button>
           </HStack>
-        </Flex>
-        
-        <Text fontSize="sm" color="gray.600">{item.owner}</Text>
-        <Text fontSize="sm" color="blue.500">{item.stage}</Text>
-        
-        {item.attachments && item.attachments.length > 0 && (
-        <VStack align="stretch" spacing={2}>
-          <Text fontWeight="bold">Attachments:</Text>
-          {item.attachments.map((attachment, index) => (
-            <HStack key={index}>
-              {getFileIcon(attachment.filename)}
-              <Link href={attachment.url} isExternal fontSize="sm" color="blue.500">
-                {attachment.filename}
-              </Link>
-            </HStack>
-          ))}
+  
+          <Collapse in={isOpen}>
+            <VStack align="start" spacing={2} mt={2}>
+              <Text><strong>Relevans for BI:</strong> {item.relevance_for_bi}</Text>
+              <Text><strong>Behov:</strong> {item.need_for_course}</Text>
+              <Text><strong>Målgruppe:</strong> {item.target_group}</Text>
+              <Text><strong>Vekstpotensial:</strong> {item.growth_potential}</Text>
+              <Text><strong>Faglige ressurser:</strong> {item.faculty_resources}</Text>
+              
+              <Box width="100%">
+                <Heading size="sm" mb={2}>Meeting History</Heading>
+                <Table variant="simple" size="sm">
+                  <Thead>
+                    <Tr>
+                      <Th>Meeting Date</Th>
+                      <Th>Meeting Number</Th>
+                      <Th>Stage at Meeting</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {meetingHistory.map((meeting, index) => (
+                      <Tr key={index}>
+                        <Td>{new Date(meeting.date).toLocaleDateString()}</Td>
+                        <Td>{meeting.number}</Td>
+                        <Td>{meeting.stage_at_meeting}</Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </Box>
+            </VStack>
+          </Collapse>
         </VStack>
-      )}
-        
-        <HStack className="file-upload-container">
-          <Input type="file" onChange={handleFileChange} size="sm" />
-          <Button size="sm" onClick={handleSaveFile} isDisabled={!selectedFile}>
-            Save File
-          </Button>
-        </HStack>
-
-        <Collapse in={isOpen}>
-          <VStack align="start" spacing={2} mt={2}>
-            <Text><strong>Relevans for BI:</strong> {item.relevance_for_bi}</Text>
-            <Text><strong>Behov:</strong> {item.need_for_course}</Text>
-            <Text><strong>Målgruppe:</strong> {item.target_group}</Text>
-            <Text><strong>Vekstpotensial:</strong> {item.growth_potential}</Text>
-            <Text><strong>Faglige ressurser:</strong> {item.faculty_resources}</Text>
-          </VStack>
-        </Collapse>
-      </VStack>
-    </Box>
-  );
-};
-
-const ItemsList = () => {
-  const [items, setItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
-  const [isAddingItem, setIsAddingItem] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const toast = useToast();
-
-  const fetchItems = useCallback(() => {
-    axios.get('http://localhost:5000/tasks')
-      .then(response => {
-        console.log('Fetched items:', response.data);
-        const sortedItems = response.data.sort((a, b) => {
-          const aNum = parseInt(a.casenumber.split('/')[0]);
-          const bNum = parseInt(b.casenumber.split('/')[0]);
-          return aNum - bNum;
-        });
-        setItems(sortedItems);
-        setFilteredItems(sortedItems);
-      })
-      .catch(error => {
-        console.error('Error fetching items:', error);
-        toast({
-          title: "Feil ved henting av oppgaver",
-          description: error.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  }, [toast]);
-
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
-
-  useEffect(() => {
-    const filtered = items.filter(item =>
-      (item.title && item.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.casenumber && item.casenumber.includes(searchTerm)) ||
-      (item.owner && item.owner.toLowerCase().includes(searchTerm.toLowerCase()))
+      </Box>
     );
-    setFilteredItems(filtered);
-  }, [searchTerm, items]);
-
-  const handleEdit = (item) => {
-    setEditingItem(item);
-    setIsAddingItem(true);
   };
-
-  const handleDelete = (itemId) => {
-    axios.delete(`http://localhost:5000/tasks/${itemId}`)
-      .then(() => {
-        setItems(prevItems => prevItems.filter(item => item.id !== itemId));
-        setFilteredItems(prevItems => prevItems.filter(item => item.id !== itemId));
-        toast({
-          title: "Oppgave slettet",
-          status: "success",
-          duration: 2000,
-          isClosable: true,
+  
+  const ItemsList = () => {
+    const [items, setItems] = useState([]);
+    const [filteredItems, setFilteredItems] = useState([]);
+    const [isAddingItem, setIsAddingItem] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const toast = useToast();
+  
+    const fetchItems = useCallback(() => {
+      axios.get('http://localhost:5000/tasks')
+        .then(response => {
+          console.log('Fetched items:', response.data);
+          const sortedItems = response.data.sort((a, b) => {
+            const aNum = parseInt(a.casenumber?.split('/')[0] || '0');
+            const bNum = parseInt(b.casenumber?.split('/')[0] || '0');
+            return aNum - bNum;
+          });
+          setItems(sortedItems);
+          setFilteredItems(sortedItems);
+        })
+        .catch(error => {
+          console.error('Error fetching items:', error);
+          toast({
+            title: "Feil ved henting av oppgaver",
+            description: error.message,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
         });
+    }, [toast]);
+  
+    useEffect(() => {
+      fetchItems();
+    }, [fetchItems]);
+  
+    useEffect(() => {
+      const filtered = items.filter(item =>
+        (item.title && item.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.casenumber && item.casenumber.includes(searchTerm)) ||
+        (item.owner && item.owner.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+      setFilteredItems(filtered);
+    }, [searchTerm, items]);
+  
+    const handleEdit = (item) => {
+      setEditingItem(item);
+      setIsAddingItem(true);
+    };
+  
+    const handleDelete = (itemId) => {
+      axios.delete(`http://localhost:5000/tasks/${itemId}`)
+        .then(() => {
+          setItems(prevItems => prevItems.filter(item => item.id !== itemId));
+          setFilteredItems(prevItems => prevItems.filter(item => item.id !== itemId));
+          toast({
+            title: "Oppgave slettet",
+            status: "success",
+            duration: 2000,
+            isClosable: true,
+          });
+        })
+        .catch(error => {
+          console.error('Error deleting item:', error);
+          toast({
+            title: "Feil ved sletting av oppgave",
+            description: error.message,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        });
+    };
+  
+    const handleUpdate = (updatedItem) => {
+      axios.put(`http://localhost:5000/tasks/${updatedItem.id}`, updatedItem)
+        .then(response => {
+          setItems(prevItems => prevItems.map(item =>
+            item.id === updatedItem.id ? response.data : item
+          ));
+          setFilteredItems(prevItems => prevItems.map(item =>
+            item.id === updatedItem.id ? response.data : item
+          ));
+          setEditingItem(null);
+          setIsAddingItem(false);
+          toast({
+            title: "Oppgave oppdatert",
+            status: "success",
+            duration: 2000,
+            isClosable: true,
+          });
+        })
+        .catch(error => {
+          console.error('Error updating item:', error);
+          toast({
+            title: "Feil ved oppdatering av oppgave",
+            description: error.message,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        });
+    };
+  
+    const handleAdd = (newItem) => {
+      axios.post('http://localhost:5000/tasks', newItem)
+        .then(response => {
+          setItems(prevItems => {
+            const updatedItems = [...prevItems, response.data];
+            return updatedItems.sort((a, b) => {
+              const aNum = parseInt(a.casenumber?.split('/')[0] || '0');
+              const bNum = parseInt(b.casenumber?.split('/')[0] || '0');
+              return aNum - bNum;
+            });
+          });
+          setFilteredItems(prevItems => {
+            const updatedItems = [...prevItems, response.data];
+            return updatedItems.sort((a, b) => {
+              const aNum = parseInt(a.casenumber?.split('/')[0] || '0');
+              const bNum = parseInt(b.casenumber?.split('/')[0] || '0');
+              return aNum - bNum;
+            });
+          });
+          setIsAddingItem(false);
+          toast({
+            title: "Oppgave lagt til",
+            status: "success",
+            duration: 2000,
+            isClosable: true,
+          });
+        })
+        .catch(error => {
+          console.error('Error adding item:', error);
+          toast({
+            title: "Feil ved tillegg av oppgave",
+            description: error.message,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        });
+    };
+  
+    const handleNumberChange = (itemId, newNumber) => {
+      axios.put(`http://localhost:5000/tasks/${itemId}`, { casenumber: newNumber })
+        .then(response => {
+          setItems(prevItems => {
+            const updatedItems = prevItems.map(item =>
+              item.id === itemId ? { ...item, casenumber: newNumber } : item
+            );
+            return updatedItems.sort((a, b) => {
+              const aNum = parseInt(a.casenumber?.split('/')[0] || '0');
+              const bNum = parseInt(b.casenumber?.split('/')[0] || '0');
+              return aNum - bNum;
+            });
+          });
+          setFilteredItems(prevItems => {
+            const updatedItems = prevItems.map(item =>
+              item.id === itemId ? { ...item, casenumber: newNumber } : item
+            );
+            return updatedItems.sort((a, b) => {
+              const aNum = parseInt(a.casenumber?.split('/')[0] || '0');
+              const bNum = parseInt(b.casenumber?.split('/')[0] || '0');
+              return aNum - bNum;
+            });
+          });
+          toast({
+            title: "Oppgavenummer oppdatert",
+            status: "success",
+            duration: 2000,
+            isClosable: true,
+          });
+        })
+        .catch(error => {
+          console.error('Error updating item number:', error);
+          toast({
+            title: "Feil ved oppdatering av oppgavenummer",
+            description: error.response?.data?.error || error.message,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+        });
+    };
+  
+    const handleFileUpload = (itemId, file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+  
+      axios.post(`http://localhost:5000/tasks/${itemId}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       })
-      .catch(error => {
-        console.error('Error deleting item:', error);
-        toast({
-          title: "Feil ved sletting av oppgave",
-          description: error.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
-
-  const handleUpdate = (updatedItem) => {
-    axios.put(`http://localhost:5000/tasks/${updatedItem.id}`, updatedItem)
       .then(response => {
-        setItems(prevItems => prevItems.map(item =>
-          item.id === updatedItem.id ? response.data : item
+        setItems(prevItems => prevItems.map(item => 
+          item.id === itemId 
+            ? { ...item, attachments: [...(item.attachments || []), response.data.attachment] }
+            : item
         ));
-        setFilteredItems(prevItems => prevItems.map(item =>
-          item.id === updatedItem.id ? response.data : item
+        setFilteredItems(prevItems => prevItems.map(item => 
+          item.id === itemId 
+            ? { ...item, attachments: [...(item.attachments || []), response.data.attachment] }
+            : item
         ));
-        setEditingItem(null);
-        setIsAddingItem(false);
         toast({
-          title: "Oppgave oppdatert",
+          title: "File uploaded successfully",
           status: "success",
           duration: 2000,
           isClosable: true,
         });
       })
       .catch(error => {
-        console.error('Error updating item:', error);
+        console.error('Error uploading file:', error);
         toast({
-          title: "Feil ved oppdatering av oppgave",
+          title: "Error uploading file",
           description: error.message,
           status: "error",
           duration: 3000,
           isClosable: true,
         });
       });
-  };
-
-  const handleAdd = (newItem) => {
-    axios.post('http://localhost:5000/tasks', newItem)
-      .then(response => {
-        setItems(prevItems => {
-          const updatedItems = [...prevItems, response.data];
-          return updatedItems.sort((a, b) => {
-            const aNum = parseInt(a.casenumber.split('/')[0]);
-            const bNum = parseInt(b.casenumber.split('/')[0]);
-            return aNum - bNum;
-          });
-        });
-        setFilteredItems(prevItems => {
-          const updatedItems = [...prevItems, response.data];
-          return updatedItems.sort((a, b) => {
-            const aNum = parseInt(a.casenumber.split('/')[0]);
-            const bNum = parseInt(b.casenumber.split('/')[0]);
-            return aNum - bNum;
-          });
-        });
-        setIsAddingItem(false);
+    };
+  
+    const handleImportNettskjema = async () => {
+      try {
+        const response = await axios.post('http://localhost:5000/import-nettskjema');
         toast({
-          title: "Oppgave lagt til",
+          title: "Import successful",
+          description: `Imported ${response.data.imported_tasks.length} tasks`,
           status: "success",
-          duration: 2000,
+          duration: 5000,
           isClosable: true,
         });
-      })
-      .catch(error => {
-        console.error('Error adding item:', error);
+        fetchItems();  // Refresh the items list after import
+      } catch (error) {
         toast({
-          title: "Feil ved tillegg av oppgave",
-          description: error.message,
+          title: "Import failed",
+          description: error.response?.data?.error || "An unknown error occurred",
           status: "error",
-          duration: 3000,
+          duration: 5000,
           isClosable: true,
         });
-      });
-  };
-
-  const handleNumberChange = (itemId, newNumber) => {
-    axios.put(`http://localhost:5000/tasks/${itemId}`, { casenumber: newNumber })
-      .then(response => {
-        setItems(prevItems => {
-          const updatedItems = prevItems.map(item =>
-            item.id === itemId ? { ...item, casenumber: newNumber } : item
-          );
-          return updatedItems.sort((a, b) => {
-            const aNum = parseInt(a.casenumber.split('/')[0]);
-            const bNum = parseInt(b.casenumber.split('/')[0]);
-            return aNum - bNum;
-          });
-        });
-        setFilteredItems(prevItems => {
-          const updatedItems = prevItems.map(item =>
-            item.id === itemId ? { ...item, casenumber: newNumber } : item
-          );
-          return updatedItems.sort((a, b) => {
-            const aNum = parseInt(a.casenumber.split('/')[0]);
-            const bNum = parseInt(b.casenumber.split('/')[0]);
-            return aNum - bNum;
-          });
-        });
-        toast({
-          title: "Oppgavenummer oppdatert",
-          status: "success",
-          duration: 2000,
-          isClosable: true,
-        });
-      })
-      .catch(error => {
-        console.error('Error updating item number:', error);
-        toast({
-          title: "Feil ved oppdatering av oppgavenummer",
-          description: error.response?.data?.error || error.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
-
-  const handleFileUpload = (itemId, file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    axios.post(`http://localhost:5000/tasks/${itemId}/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
       }
-    })
-    .then(response => {
-      setItems(prevItems => prevItems.map(item => 
-        item.id === itemId 
-          ? { ...item, attachments: [...(item.attachments || []), response.data.attachment] }
-          : item
-      ));
-      setFilteredItems(prevItems => prevItems.map(item => 
-        item.id === itemId 
-          ? { ...item, attachments: [...(item.attachments || []), response.data.attachment] }
-          : item
-      ));
-      toast({
-        title: "File uploaded successfully",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
-    })
-    .catch(error => {
-      console.error('Error uploading file:', error);
-      toast({
-        title: "Error uploading file",
-        description: error.message,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    });
-  };
-
-  const handleImportNettskjema = async () => {
-    try {
-      const response = await axios.post('http://localhost:5000/import-nettskjema');
-      toast({
-        title: "Import successful",
-        description: `Imported ${response.data.imported_tasks.length} tasks`,
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
-      fetchItems();  // Refresh the items list after import
-    } catch (error) {
-      toast({
-        title: "Import failed",
-        description: error.response?.data?.error || "An unknown error occurred",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
-  return (
-    <DndProvider backend={HTML5Backend}>
+    };
+  
+    return (
       <Box p={4}>
         <Flex justify="space-between" align="center" mb={4}>
           <Heading size="lg">Saksdatabase</Heading>
@@ -410,8 +441,7 @@ const ItemsList = () => {
           />
         )}
       </Box>
-    </DndProvider>
-  );
-};
-
-export default ItemsList;
+    );
+  };
+  
+  export default ItemsList;
