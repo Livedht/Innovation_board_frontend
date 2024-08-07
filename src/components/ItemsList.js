@@ -2,14 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Box, VStack, HStack, Heading, Text, Button, IconButton, Collapse, Input, Link, Flex, Spacer, useToast } from "@chakra-ui/react";
-import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import { Box, VStack, HStack, Heading, Text, Button, IconButton, Collapse, Input, Link, Flex, Spacer, useToast, InputGroup, InputLeftElement } from "@chakra-ui/react";
+import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronUpIcon, SearchIcon } from '@chakra-ui/icons';
 import { FaFilePdf, FaFileExcel, FaFileWord, FaFileAlt } from 'react-icons/fa';
 import AddItem from './AddItem';
 
 const ItemCard = ({ item, handleEdit, handleDelete, handleNumberChange, handleFileUpload }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [itemNumber, setItemNumber] = useState(item.caseNumber);
+  const [itemNumber, setItemNumber] = useState(item.casenumber || '');
   const [selectedFile, setSelectedFile] = useState(null);
 
   const toggleOpen = () => setIsOpen(!isOpen);
@@ -55,9 +55,10 @@ const ItemCard = ({ item, handleEdit, handleDelete, handleNumberChange, handleFi
             size="sm"
             value={itemNumber}
             onChange={handleItemNumberChange}
-            onBlur={handleItemNumberBlur} // Save on blur
+            onBlur={handleItemNumberBlur}
             width="100px"
             mr={2}
+            placeholder="Item #"
           />
           <Heading size="md" flex={1}>{item.title}</Heading>
           <Spacer />
@@ -110,15 +111,23 @@ const ItemCard = ({ item, handleEdit, handleDelete, handleNumberChange, handleFi
 
 const ItemsList = () => {
   const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
 
   const fetchItems = useCallback(() => {
     axios.get('http://localhost:5000/tasks')
       .then(response => {
         console.log('Fetched items:', response.data);
-        setItems(response.data);
+        const sortedItems = response.data.sort((a, b) => {
+          const aNum = parseInt(a.casenumber.split('/')[0]);
+          const bNum = parseInt(b.casenumber.split('/')[0]);
+          return aNum - bNum;
+        });
+        setItems(sortedItems);
+        setFilteredItems(sortedItems);
       })
       .catch(error => {
         console.error('Error fetching items:', error);
@@ -136,14 +145,14 @@ const ItemsList = () => {
     fetchItems();
   }, [fetchItems]);
 
-  const moveItem = useCallback((dragIndex, hoverIndex) => {
-    setItems((prevItems) => {
-      const newItems = [...prevItems];
-      const [reorderedItem] = newItems.splice(dragIndex, 1);
-      newItems.splice(hoverIndex, 0, reorderedItem);
-      return newItems;
-    });
-  }, []);
+  useEffect(() => {
+    const filtered = items.filter(item =>
+      (item.title && item.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.casenumber && item.casenumber.includes(searchTerm)) ||
+      (item.owner && item.owner.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    setFilteredItems(filtered);
+  }, [searchTerm, items]);
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -154,6 +163,7 @@ const ItemsList = () => {
     axios.delete(`http://localhost:5000/tasks/${itemId}`)
       .then(() => {
         setItems(prevItems => prevItems.filter(item => item.id !== itemId));
+        setFilteredItems(prevItems => prevItems.filter(item => item.id !== itemId));
         toast({
           title: "Oppgave slettet",
           status: "success",
@@ -177,6 +187,9 @@ const ItemsList = () => {
     axios.put(`http://localhost:5000/tasks/${updatedItem.id}`, updatedItem)
       .then(response => {
         setItems(prevItems => prevItems.map(item =>
+          item.id === updatedItem.id ? response.data : item
+        ));
+        setFilteredItems(prevItems => prevItems.map(item =>
           item.id === updatedItem.id ? response.data : item
         ));
         setEditingItem(null);
@@ -203,7 +216,22 @@ const ItemsList = () => {
   const handleAdd = (newItem) => {
     axios.post('http://localhost:5000/tasks', newItem)
       .then(response => {
-        setItems(prevItems => [...prevItems, response.data]);
+        setItems(prevItems => {
+          const updatedItems = [...prevItems, response.data];
+          return updatedItems.sort((a, b) => {
+            const aNum = parseInt(a.casenumber.split('/')[0]);
+            const bNum = parseInt(b.casenumber.split('/')[0]);
+            return aNum - bNum;
+          });
+        });
+        setFilteredItems(prevItems => {
+          const updatedItems = [...prevItems, response.data];
+          return updatedItems.sort((a, b) => {
+            const aNum = parseInt(a.casenumber.split('/')[0]);
+            const bNum = parseInt(b.casenumber.split('/')[0]);
+            return aNum - bNum;
+          });
+        });
         setIsAddingItem(false);
         toast({
           title: "Oppgave lagt til",
@@ -225,12 +253,28 @@ const ItemsList = () => {
   };
 
   const handleNumberChange = (itemId, newNumber) => {
-    axios.put(`http://localhost:5000/tasks/${itemId}`, { caseNumber: newNumber })
+    axios.put(`http://localhost:5000/tasks/${itemId}`, { casenumber: newNumber })
       .then(response => {
-        setItems(prevItems => prevItems.map(item =>
-          item.id === itemId ? { ...item, caseNumber: newNumber } : item
-        ));
-        reorderItems();
+        setItems(prevItems => {
+          const updatedItems = prevItems.map(item =>
+            item.id === itemId ? { ...item, casenumber: newNumber } : item
+          );
+          return updatedItems.sort((a, b) => {
+            const aNum = parseInt(a.casenumber.split('/')[0]);
+            const bNum = parseInt(b.casenumber.split('/')[0]);
+            return aNum - bNum;
+          });
+        });
+        setFilteredItems(prevItems => {
+          const updatedItems = prevItems.map(item =>
+            item.id === itemId ? { ...item, casenumber: newNumber } : item
+          );
+          return updatedItems.sort((a, b) => {
+            const aNum = parseInt(a.casenumber.split('/')[0]);
+            const bNum = parseInt(b.casenumber.split('/')[0]);
+            return aNum - bNum;
+          });
+        });
         toast({
           title: "Oppgavenummer oppdatert",
           status: "success",
@@ -250,26 +294,6 @@ const ItemsList = () => {
       });
   };
 
-  const reorderItems = () => {
-    const sortedItems = [...items].sort((a, b) => a.caseNumber - b.caseNumber);
-    setItems(sortedItems);
-    const newOrder = sortedItems.map(item => item.id);
-    axios.post('http://localhost:5000/tasks/reorder', newOrder)
-      .then(response => {
-        setItems(response.data);
-      })
-      .catch(error => {
-        console.error('Error reordering items:', error);
-        toast({
-          title: "Feil ved rekkefølgeendring",
-          description: error.message,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      });
-  };
-
   const handleFileUpload = (itemId, file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -281,6 +305,11 @@ const ItemsList = () => {
     })
     .then(response => {
       setItems(prevItems => prevItems.map(item => 
+        item.id === itemId 
+          ? { ...item, attachments: [...(item.attachments || []), response.data.attachment] }
+          : item
+      ));
+      setFilteredItems(prevItems => prevItems.map(item => 
         item.id === itemId 
           ? { ...item, attachments: [...(item.attachments || []), response.data.attachment] }
           : item
@@ -340,13 +369,22 @@ const ItemsList = () => {
             </Button>
           </HStack>
         </Flex>
+        <InputGroup mb={4}>
+          <InputLeftElement pointerEvents="none">
+            <SearchIcon color="gray.300" />
+          </InputLeftElement>
+          <Input
+            placeholder="Søk etter saker..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </InputGroup>
         <VStack spacing={4} align="stretch" width="100%">
-          {items.map((item, index) => (
+          {filteredItems.map((item, index) => (
             <ItemCard
               key={item.id}
               item={item}
               index={index}
-              moveItem={moveItem}
               handleEdit={handleEdit}
               handleDelete={handleDelete}
               handleNumberChange={handleNumberChange}

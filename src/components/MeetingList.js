@@ -1,8 +1,7 @@
-// src/components/MeetingList.js
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { Box, VStack, Button, useToast, Heading, HStack, Input, IconButton, Flex, Text, Collapse, Grid, GridItem, Textarea } from "@chakra-ui/react";
-import { DeleteIcon, HamburgerIcon, CloseIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import { Box, VStack, Button, useToast, Heading, HStack, Input, IconButton, Flex, Text, Collapse, Grid, GridItem, InputGroup, InputLeftElement, Textarea } from "@chakra-ui/react";
+import { DeleteIcon, HamburgerIcon, CloseIcon, ChevronDownIcon, ChevronUpIcon, SearchIcon } from '@chakra-ui/icons';
 import AddMeeting from './AddMeeting';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -30,7 +29,7 @@ const DraggableTask = ({ task, onDropTask }) => {
       boxShadow="sm"
     >
       <VStack align="start" spacing={1}>
-        <Text fontSize="sm" color="gray.500">{task.caseNumber}</Text>
+        <Text fontSize="sm" color="gray.500">{task.casenumber}</Text>
         <Heading size="sm">{task.title}</Heading>
         <Text fontSize="sm">{task.owner}</Text>
         <Text fontSize="sm" color="blue.500">{task.stage}</Text>
@@ -100,7 +99,7 @@ const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, i
             <Box key={task.id} p={3} bg="white" borderWidth="1px" borderRadius="md" boxShadow="sm">
               <Flex justify="space-between" align="center">
                 <VStack align="start" spacing={1}>
-                  <Text fontSize="sm" color="gray.500">{task.caseNumber}</Text>
+                  <Text fontSize="sm" color="gray.500">{task.casenumber}</Text>
                   <Heading size="sm">{task.title}</Heading>
                   <Text fontSize="sm">{task.owner}</Text>
                   <Text fontSize="sm" color="blue.500">{task.stage}</Text>
@@ -141,9 +140,11 @@ const DroppableMeeting = ({ meeting, onDropTask, onRemoveTask, onToggleExpand, i
 const MeetingList = ({ onSelectMeeting }) => {
   const [meetings, setMeetings] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [filteredTasks, setFilteredTasks] = useState([]);
   const [isAddingMeeting, setIsAddingMeeting] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [filter, setFilter] = useState('');
+  const [taskSearchTerm, setTaskSearchTerm] = useState('');
   const [expandedMeetings, setExpandedMeetings] = useState({});
   const toast = useToast();
 
@@ -169,6 +170,7 @@ const MeetingList = ({ onSelectMeeting }) => {
     axios.get('http://localhost:5000/tasks')
       .then(response => {
         setTasks(response.data);
+        setFilteredTasks(response.data);
       })
       .catch(error => {
         toast({
@@ -185,6 +187,15 @@ const MeetingList = ({ onSelectMeeting }) => {
     fetchMeetings();
     fetchTasks();
   }, [fetchMeetings, fetchTasks]);
+
+  useEffect(() => {
+    const filtered = tasks.filter(task =>
+      (task.title && task.title.toLowerCase().includes(taskSearchTerm.toLowerCase())) ||
+      (task.casenumber && task.casenumber.includes(taskSearchTerm)) ||
+      (task.owner && task.owner.toLowerCase().includes(taskSearchTerm.toLowerCase()))
+    );
+    setFilteredTasks(filtered);
+  }, [taskSearchTerm, tasks]);
 
   const handleAddMeeting = (newMeeting) => {
     axios.post('http://localhost:5000/meetings', newMeeting)
@@ -438,8 +449,18 @@ const MeetingList = ({ onSelectMeeting }) => {
             <GridItem>
               <Box bg="gray.100" p={4} borderRadius="md" boxShadow="md" height="100%">
                 <Heading size="md" mb={4}>Oppgaver</Heading>
+                <InputGroup mb={4}>
+                  <InputLeftElement pointerEvents="none">
+                    <SearchIcon color="gray.300" />
+                  </InputLeftElement>
+                  <Input
+                    placeholder="Søk etter oppgaver..."
+                    value={taskSearchTerm}
+                    onChange={(e) => setTaskSearchTerm(e.target.value)}
+                  />
+                </InputGroup>
                 <VStack spacing={4} align="stretch" overflowY="auto" maxHeight="calc(100vh - 200px)">
-                  {tasks.map(task => (
+                  {filteredTasks.map(task => (
                     <DraggableTask key={task.id} task={task} onDropTask={handleDropTask} />
                   ))}
                 </VStack>

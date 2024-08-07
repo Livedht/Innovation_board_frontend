@@ -28,6 +28,7 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
   const [growth_potential, setGrowthPotential] = useState('');
   const [faculty_resources, setFacultyResources] = useState('');
   const [stage, setStage] = useState('Idea Description');
+  const [casenumber, setCaseNumber] = useState('');
 
   const toast = useToast();
 
@@ -42,6 +43,7 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
       setGrowthPotential(item.growth_potential);
       setFacultyResources(item.faculty_resources);
       setStage(item.stage);
+      setCaseNumber(item.casenumber || '');
     }
   }, [item]);
 
@@ -57,7 +59,8 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
       target_group,
       growth_potential,
       faculty_resources,
-      stage
+      stage,
+      casenumber
     };
 
     if (item) {
@@ -116,6 +119,10 @@ const AddItem = ({ isOpen, onClose, onItemAdded, item }) => {
         <ModalBody>
           <form onSubmit={handleSubmit}>
             <VStack spacing={4}>
+              <FormControl>
+                <FormLabel>Idénummer</FormLabel>
+                <Input value={casenumber} onChange={(e) => setCaseNumber(e.target.value)} />
+              </FormControl>
               <FormControl>
                 <FormLabel>Idénavn</FormLabel>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} required />
